@@ -1,5 +1,5 @@
 {
-  "name": "artprima/query-filter-bundle",
+  "name": "opwoco/query-filter-bundle",
   "description": "An easy way to filter requests in your Symfony 4 application (that uses Doctrine2 as ORM).",
   "keywords": [ "symfony", "doctrine", "query", "filter" ],
   "type": "symfony-bundle",
