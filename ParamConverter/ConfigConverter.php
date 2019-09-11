@@ -9,6 +9,8 @@ use Doctrine\ORM\EntityManager;
 use Doctrine\Common\Persistence\ManagerRegistry;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\ParamConverter;
 use Sensio\Bundle\FrameworkExtraBundle\Request\ParamConverter\ParamConverterInterface;
+use Symfony\Component\DependencyInjection\Container;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request as HttpRequest;
 
 class ConfigConverter implements ParamConverterInterface
@@ -18,18 +20,29 @@ class ConfigConverter implements ParamConverterInterface
      */
     private $registry;
 
-    public function __construct(ManagerRegistry $registry = null)
+    /**
+     * @var Container
+     */
+    private $container;
+
+    /**
+     * ConfigConverter constructor.
+     * @param ContainerInterface $container
+     * @param ManagerRegistry|null $registry
+     */
+    public function __construct(Container $container, ManagerRegistry $registry = null)
     {
+        $this->container = $container;
         $this->registry = $registry;
     }
 
     private function getOptions(ParamConverter $configuration): array
     {
-        return array_replace(array(
-            'entity_manager' => null,
-            'entity_class' => null,
+        return array_replace([
+            'entity_manager'    => null,
+            'entity_class'      => null,
             'repository_method' => null,
-        ), $configuration->getOptions());
+        ], $configuration->getOptions());
     }
 
     private function getManager($name, $class): EntityManager
@@ -65,7 +78,8 @@ class ConfigConverter implements ParamConverterInterface
     {
         $options = $this->getOptions($configuration);
 
-        if (!isset($options['entity_class'])) {
+
+        if (!isset($options['entity_class']) && !isset($options['repository_class'])) {
             throw new InvalidArgumentException(self::class.': entity_class not provided. Wrong configuration?');
         }
 
@@ -81,15 +95,22 @@ class ConfigConverter implements ParamConverterInterface
         }
 
         $config->setRequest(new Request($request));
+        $entityClass = $options['entity_class'];
 
-        $manager = $this->getManager($options['entity_manager'], $options['entity_class']);
-        $repo = $manager->getRepository($options['entity_class']);
+        if (isset($options['repository_class'])) {
+            $repoClass = $options['repository_class'];
+            $repo = $this->container->get($repoClass);
+        } else {
+            die("ds");
+            $manager = $this->getManager($options['entity_manager'], $entityClass);
+            $repo = $manager->getRepository($entityClass);
+        }
 
-        if (!is_callable(array($repo, $options['repository_method']))) {
+        if (!is_callable([$repo, $options['repository_method']])) {
             throw new InvalidArgumentException(self::class.': repository_method is not callable. Wrong configuration?');
         }
 
-        $config->setRepositoryCallback(array($repo, $options['repository_method']));
+        $config->setRepositoryCallback([$repo, $options['repository_method']]);
 
         $request->attributes->set($configuration->getName(), $config);
 

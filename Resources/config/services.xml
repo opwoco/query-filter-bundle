@@ -12,6 +12,7 @@
     <services>
         <service id="query_filter_bundle.param_converter.query_filter_config" class="%query_filter_bundle.param_converter.query_filter_config.class%">
             <tag name="request.param_converter" priority="3" converter="query_filter_config_converter" />
+            <argument type="service" id="service_container" />
             <argument type="service" id="Doctrine\Common\Persistence\ManagerRegistry" />
         </service>
         <service id="query_filter_bundle.query_filter" class="%query_filter_bundle.query_filter.class%">
